@@ -1,107 +1,150 @@
 #!/usr/bin/python3
 import numpy as np
+from scipy import stats
 import os 
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
-from scipy import stats
 
-print("********************************************************************************")
-print("For independent samples - if using dependent samples (the difference)\n e.g. before/after, husband/wife, SAT/course accepetance, use CI.py")
-print("*******************************************************************************")
-form1 = str(input("\nInputing full data or summary [f/s]? "))
-if form1 == "s" or form1 == "S": 
-    print("This will test the two data sets from the summarised data - for input data use CI-t-2_means.py")
-    print("Sample 1...")
-    n1 = int(input("Size of sample? ")); m1 = float(input("Mean of sample? ")); s1 = float(input("SD of sample? "))
-    print("Sample 2...")
-    n2 = int(input("Size of sample? ")); m2 = float(input("Mean of sample? ")); s2 = float(input("SD of sample? "))
+print("**************************************************************************************")
+print("Gives the mean and confidence interval, based on both Z (n > 30) and T-statistics (n < 30)")
+print("**************************************************************************************")
+form = str(input("Data format, csv or  dat [c/d]? "))
+if form != "d":
+    os.system("ls *.csv")
 else:
-    form = str(input("Data format, csv or  dat [c/d]? "))
+    os.system("ls *.dat")
 
-    if form != "d":
-        os.system("ls *.csv")
+infile = str(input("Data to get confidence interval for? "))
+# ~/teaching/VUW/245_Experimental_Physics/data/salaries.dat
+os.system("head %s" %(infile))
+
+hq = str(input("\nIs there a header [y/n]? " ))
+
+if form != "d":
+    if hq == "n":
+        df = pd.read_csv(infile,header=None,comment='#')
     else:
-        os.system("ls *.dat")
-
-    infile = str(input("Data wtih the two samples to compare? "))
-    os.system("head %s" %(infile))
-    
-    '''
-    if form != "d":
         df = pd.read_csv(infile,comment='#')
+else:
+    if hq == "n":
+        df = pd.read_csv(infile,delim_whitespace=True,header=None,comment='#')
     else:
         df = pd.read_csv(infile,delim_whitespace=True,comment='#')
-    '''
-    hq = str(input("\nIs there a header [y/n]? " ))
-
-    if form != "d":
-        if hq == "n":
-            df = pd.read_csv(infile,header=None,comment='#')
-        else:
-            df = pd.read_csv(infile,comment='#')
-    else:
-        if hq == "n":
-            df = pd.read_csv(infile,delim_whitespace=True,header=None,comment='#')
-        else:
-            df = pd.read_csv(infile,delim_whitespace=True,comment='#')
         
-    tran = str(input("Need to tranpose [y/n]? " ))
-    if tran == "y" or tran == "Y":
-        df = df.T
-        df.columns = df.iloc[0]
-        df= df[1:]
-        
-    df = df.replace('NaN', np.nan) # AS STRING
-    zeroes = str(input("Replace 0s with Nans [y/n]? " ))
-    if zeroes == "y" or zeroes == "Y":
-        df = df.replace(0, np.nan)
+tran = str(input("Need to tranpose [y/n]? " ))
+if tran == "y" or tran == "Y":
+    df = df.T
+    df.columns = df.iloc[0]
+    df= df[1:]
 
-    print(df)
-    col1 = df.columns[0]; col2 = df.columns[1];  #print(col1,col2)
-    nans1 = df[df[col1] != df[col1]]
-    nans2 = df[df[col2] != df[col2]] 
-    #import statistics as stats
-    m1 = np.mean(df[col1]); n1 = len(df[col1]) - len(nans1);
-    s1 = np.std(df[col1]) * (float(n1)/(n1-1))**0.5; 
-    SE1 = s1/(float(n1)**0.5) # SAMPLE SD
+ot = str(input("One [o] or two-sided [any other]: "))
+    
+df = df.replace('NaN', np.nan) # AS STRING
 
-    m2 = np.mean(df[col2]); n2 = len(df[col2])-len(nans2); #-nans
-    s2 = np.std(df[col2]) * (float(n2)/(n2-1))**0.5
-    SE2 = s2/(float(n2)**0.5)
+blankIndex=[''] * len(df); df.index=blankIndex # TO LOSE INDEX
+print(df)
 
-    print("For %s -  n = %d, mean = %1.3f, SD = %1.3f [sample]" %(col1,n1,m1,s1)) 
-    print("For %s -  n = %d, mean = %1.3f, SD = %1.3f [sample]" %(col2,n2,m2,s2))
+no = int(input("Which column do you want to test [1,2,..]? "))
+col = df.columns[no-1]; print("Column selected is", col)
 
-    x = df[col1]; y = df[col2]; print(x,y)
-    #t,p_t = stats.ttest_ind(x,y);#The bug is in line 3885, in file scipy/scipy/stats/stats.py 
-    #t,p_t = stats.ttest_ind(df.dropna()[col1], df.dropna()[col2],equal_var=True)
-    t,p_t = stats.ttest_ind(df.dropna()[col1], df.dropna()[col2],equal_var=False)
-    ks = stats.kstest(x,y); p_ks = ks[1]
-    print("t-test (BUGGY WITH NaN) gives p = %1.3f and KS gives p = %1.3e of being drawn from same population"%(p_t,p_ks))
-       
-m = m1 - m2
-pi = np.pi
+def strip(ch):
+    df[col] = df[col].str.replace(ch,'', regex=True)
 
-con = float(input("\nLevel of confidence [e.g. 95, 99, 99.9% - z = 3 sigma is 99.75]? "))
+st = str(input("Strip column of weird characters, e.g. $ [y/n]? " ))
+if st == "y" or st == "Y":
+    ch1 = str(input("Enter character, e.g. $ " )); #print(ch1)
+    strip(ch1)
+    df[col] = df[col].astype(float)
+    
+mean = np.mean(df[col]); n = len(df[col]); 
+std = np.std(df[col])
+stds = std*(float(n)/(n-1))**0.5# TO GET POPULATION, AS OPPOSED TO SAMPLE, VALUE
+SE = stds/(float(n)**0.5)
+
+##### WEE HISTO TO VISUALISE ######
+data = df[col]
+
+print("%d data points ranging from %1.f to %1.1f, mean = %1.2f, SD = %1.2f (pop) %1.2f (samp)" %(n,min(df[col]), max(df[col]),mean,std,stds))
+
+def histo(dbs):
+    min_val = np.min(data); max_val = np.max(data);  #print(min_val,max_val)
+    min_boundary = -1.0 * (min_val % dbs - min_val)
+    max_boundary = max_val - max_val % dbs + dbs
+    n_bins = int((max_boundary - min_boundary) / dbs) + 1
+    bins = np.linspace(min_boundary, max_boundary, n_bins)
+
+    size = 14
+    plt.rcParams.update({'font.size': size})
+    plt.figure(figsize = (6, 4))
+    ax = plt.gca();
+    plt.setp(ax.spines.values(), linewidth=2)
+    ax.tick_params(direction='in', length=6, width=1.5, which='major')
+    ax.tick_params(direction='in', length=3, width=1.5, which='minor')
+    ax.tick_params(axis='both', which='major', pad=7)
+
+    ax.hist(data, bins=bins-dbs/2, color="w", edgecolor="darkblue",linewidth=3);
+    plt.xlabel(col); plt.ylabel("Number")
+    
+    #xmin = round(min_val-dbs,0); xmax = round(max_val+dbs,0)
+    xmin, xmax = plt.xlim();ax.set_xlim(xmin,xmax)
+    ymin, ymax = plt.ylim(); #print(xmin,xmax,bins, len(bins))
+    xpos = xmin+(xmax-xmin)/16; ypos = ymax-(ymax-ymin)/12; yskip = (ymax-ymin)/12;
+
+    mean = np.mean(data); std =  np.std(data); 
+    plt.text(xpos,ypos,"\u03BC = %1.2f, \u03C3 = %1.2f" %(mean,std),
+             fontsize = int(0.8*size), c = 'k')
+    plt.tight_layout()
+    outfile = '%s-histo.png' %(infile) # HAS TO BE HERE, REMOVED dbs SO OVERWRITTEN
+    #plt.savefig(outfile); #print('Written to %s' %(outfile))
+    plt.show()
+
+ph = str(input("Plot histogram [y/n]? "))
+if ph == "y" or ph == "Y" :
+    dbs = float(input("Desired bin width? "))
+    histo(dbs)    
+    again = str(input("Another bin width [y/n]? "))
+    while again == "y" or again == "Y" :
+        dbs = float(input("Desired bin width? "))
+        histo(dbs)
+        again = str(input("Another bin width [y/n]? "))
+
+    #os.system("mv %s-histo.eps %s-histo_dbs=%1.2f.eps" %(infile,infile,dbs));
+    #print('Written to %s-histo_dbs=%1.2f.eps' %(infile,dbs))
+#####################################
+con = float(input("\nLevel of confidence [e.g. 95, 99, 99.9% - 3 sigma is 99.75]? "))
 
 from scipy.stats import norm
 
 def z_bit(con):
-    p = 1-con/100; alpha = 0.5-(p/2) # actually alpha/2 -doing one sided
-
-    pooled_var = s1**2/n1 + s2**2/n2
-    pooled_SD = pooled_var**0.5
-    pooled_SE = pooled_SD*(1/n1 + 1/n2)**0.5
+    p = 1-con/100
+    if ot == "o":
+        alpha = 0.5-p
+        ot_text = "one-sided"
+    else:
+        alpha = 0.5-(p/2)
+        ot_text = "two-sided"
+    pi = 3.141592654;
+    stand = 1/((2*pi)**0.5)
     
     Z = norm.ppf(1-p/2,loc=0,scale=1) # AGREES WITH ~/C/stats/Z-value TO ~ 1e-15 (8 sigma)
-        
-    CI = Z*pooled_SD
-    print("\nFor %1.5f %% confidence, z-value is %1.3f, \n  giving  mean diff of %1.2f +/- %1.2f (%1.2f to %1.2f)" %(con,Z,m,CI,m-CI,m+CI))
 
+    ########################################################################
+    
+    CI = Z*SE
+    print("\nFor %1.2f%% confidence, z = %1.3f,\n  giving mean of %1.2f +/- %1.2f (range of %1.2f to %1.2f)"
+          %(con,Z,mean,CI,mean-CI,mean+CI))
+    
 def t_bit(con):
-    p = 1-con/100;alpha = 0.5-(p/2) 
+    p = 1-con/100;
+    if ot == "o":
+        alpha = 0.5-p
+        ot_text = "one-sided"
+    else:
+        alpha = 0.5-(p/2)
+        ot_text = "two-sided"
+
     npts = 100000
     xi = 0.0; yi = 0;xf = 100; # SHOULD BE INFINITY
     def gamma_f(value):
@@ -114,32 +157,13 @@ def t_bit(con):
             gamma = gamma + area
         return gamma
 
-    var_ratio = s1**2/s2**2
-    print("Variance ratio is %1.2f," %(var_ratio))
-    equ = str(input("Assume equal sample variances (for ratio between 0.5 and 2 can assume equal) [y/n]? "))
-
-    if equ == "y" or equ == "Y":
-    #if var_ratio >= 0.5 and var_ratio >= 0.5:
-        #print(" which is between 0.5 and 2 so can assume same population variances")
-        dof = n1 + n2 -2
-        pooled_var = ((n1 - 1)*s1**2 + (n2 - 1)*s2**2)/(n1 + n2 -2)
-        pooled_SD = pooled_var**0.5
-        pooled_SE = pooled_SD*(1/n1 + 1/n2)**0.5; #print(pooled_SD,pooled_SE) #OKAY SO FAR
-
-    else:
-        A = s1**2/n1; B =  s2**2/n2
-        dof = (A+B)**2/(A**2/(n1-1) + B**2/(n2-1))
-        
-        pooled_SE = (s1**2/n1 + s2**2/n2)**0.5;
-        
-    n = dof+1
+    dof = n-1
     gamma_num = gamma_f(float(n)/2)
     gamma_den = gamma_f(float(dof)/2)
     stand =  gamma_num/(((np.pi*dof)**0.5)*gamma_den)
-    #print("For %d dof, gamma_num = %1.5f, gamma_den = %1.5f (xf = %1.0f ratio = %1.3f stand = %1.3f)" %(dof,gamma_num,gamma_den, xf,gamma_num/gamma_den,norm))
-         
+
     npts = 100000; 
-    xf = 5;x = [xi];yy = [yi]; total =0;y_total = 0; total = 0; area = 0; j =0
+    xf = 5;x = [xi]; y = [yi]; total =0;y_total = 0; total = 0; area = 0; j =0
     dx = (xf-xi)/npts
     for i in range(npts):
         x = i*dx
@@ -150,13 +174,12 @@ def t_bit(con):
             total = total + area; 
             j = j+1
     T = dx*j; 
-    CI = T*pooled_SE
-    print("For %1.2f%% confidence (%1.0f DoFs), t-value is %1.3f, giving mean diff of %1.2f +/- %1.2f (%1.2f to %1.2f)" %(con,dof,T,m,CI,m-CI,m+CI))
+    CI = T*SE
+    print("For %1.2f%% confidence (%1.0f DoFs), t= %1.3f [%s],\n giving mean diff of %1.2f +/- %1.2f (%1.2f to %1.2f)"
+          %(con,dof,T,ot_text,mean,CI,mean-CI,mean+CI))
 
-cut = 30
-    
-if n1 > cut and n2 > cut:
-    print("Both sample sizes > %d so using z-value" %(cut))
+if n >= 30:
+    print("Sample size >= 30 so using z-value")
     z_bit(con)
     again = str(input("Try another confidence level [y/n]? "))
     while again != "n":
@@ -164,12 +187,10 @@ if n1 > cut and n2 > cut:
         z_bit(con)
         again = str(input("Try another confidence level [y/n]? "))        
 else:
-    print("At least one sample size < %d so using t-value" %(cut))
+    print("Sample size < 30 so using t-value")
     t_bit(con)
     again = str(input("Try another confidence level [y/n]? "))
     while again != "n":
         con = float(input("\nHow much [e.g. 95, 99, 99.9% - z = 3 sigma is 99.75]? "))
         t_bit(con)
         again = str(input("Try another confidence level [y/n]? "))
-    
- 
