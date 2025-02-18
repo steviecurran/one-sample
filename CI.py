@@ -16,8 +16,7 @@ if form != "d":
 else:
     os.system("ls *.dat")
 
-infile = str(input("Data to get confidence interval for? "))
-# ~/teaching/VUW/245_Experimental_Physics/data/salaries.dat
+infile = str(input("Data to get confidence interval for [e.g. salaries.dat]? "))
 os.system("head %s" %(infile))
 
 hq = str(input("\nIs there a header [y/n]? " ))
@@ -39,12 +38,12 @@ if tran == "y" or tran == "Y":
     df.columns = df.iloc[0]
     df= df[1:]
 
-ot = str(input("One [o] or two-sided [any other]: "))
+ot = str(input("One [o] or two-sided test [any other]: "))
     
 df = df.replace('NaN', np.nan) # AS STRING
 
 blankIndex=[''] * len(df); df.index=blankIndex # TO LOSE INDEX
-print(df)
+print(df.head())
 
 no = int(input("Which column do you want to test [1,2,..]? "))
 col = df.columns[no-1]; print("Column selected is", col)
@@ -60,23 +59,23 @@ if st == "y" or st == "Y":
     
 mean = np.mean(df[col]); n = len(df[col]); 
 std = np.std(df[col])
-stds = std*(float(n)/(n-1))**0.5# TO GET POPULATION, AS OPPOSED TO SAMPLE, VALUE
+stds = np.std(df[col],ddof=1) # TO GET POPULATION, AS OPPOSED TO SAMPLE, VALUE
 SE = stds/(float(n)**0.5)
 
 ##### WEE HISTO TO VISUALISE ######
 data = df[col]
 
-print("%d data points ranging from %1.f to %1.1f, mean = %1.2f, SD = %1.2f (pop) %1.2f (samp)" %(n,min(df[col]), max(df[col]),mean,std,stds))
+print("%d data points ranging from %1.1f to %1.1f" %(n,min(df[col]), max(df[col])))
 
 def histo(dbs):
-    min_val = np.min(data); max_val = np.max(data);  #print(min_val,max_val)
+    min_val = np.min(data); max_val = np.max(data);  
     min_boundary = -1.0 * (min_val % dbs - min_val)
     max_boundary = max_val - max_val % dbs + dbs
     n_bins = int((max_boundary - min_boundary) / dbs) + 1
     bins = np.linspace(min_boundary, max_boundary, n_bins)
 
-    size = 14
-    plt.rcParams.update({'font.size': size})
+    font = 14
+    plt.rcParams.update({'font.size': font})
     plt.figure(figsize = (6, 4))
     ax = plt.gca();
     plt.setp(ax.spines.values(), linewidth=2)
@@ -84,20 +83,16 @@ def histo(dbs):
     ax.tick_params(direction='in', length=3, width=1.5, which='minor')
     ax.tick_params(axis='both', which='major', pad=7)
 
-    ax.hist(data, bins=bins-dbs/2, color="w", edgecolor="darkblue",linewidth=3);
-    plt.xlabel(col); plt.ylabel("Number")
+    #mean = np.mean(data); std = np.std(data); 
+    ax.hist(data, bins=bins-dbs/2, color="w", edgecolor="blue",linewidth=2,
+            label = "\u03BC = %1.2f, \u03C3 = %1.2f, $n$ = %d" %(mean,stds,len(data)));
+    plt.xlabel("Data in column %d" %(no)); plt.ylabel("Number")
+   
+    ax.legend(fontsize = 0.8*font,loc='upper left',labelcolor='k',framealpha = 0.5)
     
-    #xmin = round(min_val-dbs,0); xmax = round(max_val+dbs,0)
-    xmin, xmax = plt.xlim();ax.set_xlim(xmin,xmax)
-    ymin, ymax = plt.ylim(); #print(xmin,xmax,bins, len(bins))
-    xpos = xmin+(xmax-xmin)/16; ypos = ymax-(ymax-ymin)/12; yskip = (ymax-ymin)/12;
-
-    mean = np.mean(data); std =  np.std(data); 
-    plt.text(xpos,ypos,"\u03BC = %1.2f, \u03C3 = %1.2f" %(mean,std),
-             fontsize = int(0.8*size), c = 'k')
     plt.tight_layout()
-    outfile = '%s-histo.png' %(infile) # HAS TO BE HERE, REMOVED dbs SO OVERWRITTEN
-    #plt.savefig(outfile); #print('Written to %s' %(outfile))
+    outfile = '%s-histo.png' %(infile) 
+    plt.savefig(outfile); #print('Written to %s' %(outfile))
     plt.show()
 
 ph = str(input("Plot histogram [y/n]? "))
@@ -110,8 +105,6 @@ if ph == "y" or ph == "Y" :
         histo(dbs)
         again = str(input("Another bin width [y/n]? "))
 
-    #os.system("mv %s-histo.eps %s-histo_dbs=%1.2f.eps" %(infile,infile,dbs));
-    #print('Written to %s-histo_dbs=%1.2f.eps' %(infile,dbs))
 #####################################
 con = float(input("\nLevel of confidence [e.g. 95, 99, 99.9% - 3 sigma is 99.75]? "))
 
