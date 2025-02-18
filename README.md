@@ -1,5 +1,4 @@
-# one-sample
-One Sample Test 
+# One Sample Test 
 
 Python code to give the confidence interval for a one sample test. 
 
@@ -21,3 +20,5 @@ For 99.00% confidence, z = 2.570, giving mean diff of 100200.37 +/- 5384.80 (948
 -----------------------------------------------------------------------------------------------------
 
 For two sample version see https://github.com/steviecurran/two-sample
+
+![](https://raw.githubusercontent.com/steviecurran/one-sample/refs/heads/main/salaries.dat-histo.png)
