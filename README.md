@@ -1,10 +1,10 @@
 # One Sample Test 
 
 Python code to give the confidence interval for a one sample test. 
-
 Uses z and t-distributions, without the need of look-up tables
-
 Data can be extracted any column in an ascii for csv files.
+
+Can be run directly [here](https://www.kaggle.com/code/steviemooncat/one-sample-test)
 
 E.g. 
 30 data points ranging from 80740 to 117313.0, mean = 100200.37, SD = 11285.48 (pop) 11478.41 (samp)
